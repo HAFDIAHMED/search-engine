@@ -6,12 +6,12 @@ Running
 -------
 Using hashed index:
 
-	$ java -cp bin;megamap;pdfbox SearchGUI -d svwiki\files\1000
+	$ java -cp bin;megamap;pdfbox SearchGUI -d texts/1000
 
 Using MegaMap (disk based index):
 
-	$ java -cp bin;megamap;pdfbox SearchGUI -d svwiki\files\1000 -m
-	$ java -cp bin;megamap;pdfbox SearchGUI -i index_name -m
+	$ java -cp bin:megamap:pdfbox SearchGUI -d texts/1000 -m
+	$ java -cp bin:megamap:pdfbox SearchGUI -i index_name -m
 
 Authors
 -------

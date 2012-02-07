@@ -6,7 +6,7 @@
 		<java classname="ir.SearchGUI" fork="true" maxmemory="1024m">
 			<classpath path="bin;pdfbox;megamap"/>
 			<arg value="-d" />
-			<arg value="svwiki/files/1000" />
+			<arg value="texts/1000" />
 		</java>
 	</target>
 
@@ -14,7 +14,7 @@
 		<java classname="ir.SearchGUI" fork="true" maxmemory="1024m">
 			<classpath path="bin;pdfbox;megamap"/>
 			<arg value="-d" />
-			<arg value="svwiki/files/1000" />
+			<arg value="texts/1000" />
 			<arg value="-m" />
 		</java>
 	</target>
