@@ -1,0 +1,43 @@
+<project name="ir-hw1" default="compile" basedir=".">
+  <property name="src.dir" location="src"/>
+  <property name="classes.dir" location="bin"/>
+	
+	<target name="run" depends="compile">
+		<java classname="ir.SearchGUI" fork="true" maxmemory="1024m">
+			<classpath path="bin;pdfbox;megamap"/>
+			<arg value="-d" />
+			<arg value="svwiki/files/1000" />
+		</java>
+	</target>
+
+	<target name="index" depends="compile">
+		<java classname="ir.SearchGUI" fork="true" maxmemory="1024m">
+			<classpath path="bin;pdfbox;megamap"/>
+			<arg value="-d" />
+			<arg value="svwiki/files/1000" />
+			<arg value="-m" />
+		</java>
+	</target>
+
+  <target name="compile" depends="init" description="compile the source">
+		<javac srcdir="${src.dir}" destdir="${classes.dir}" debug="true" encoding="utf8" includeantruntime="false">
+			<classpath path="bin;pdfbox;megamap"/>
+			<compilerarg value="-Xlint:none"/>
+		</javac>
+  </target>
+
+  <target name="clean" depends="init" description="clean up">
+		<delete>
+			<fileset dir="${classes.dir}" includes="*.class"/>
+		</delete>
+		<delete file="${ant.project.name}.jar"/>
+  </target>
+
+	<target name="recompile" depends="clean, compile" description="clean up and compile" />
+
+  <target name="init" description="initialize build">
+    <tstamp/>
+    <mkdir dir="${classes.dir}"/>
+  </target>
+</project>
+
