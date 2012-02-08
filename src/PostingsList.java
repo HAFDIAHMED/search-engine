@@ -4,9 +4,8 @@
  * 
  *   First version:  Johan Boye, 2010
  *   Second version: Johan Boye, 2012
+ *   This version: Victor Hallberg, Johan Stjernberg
  */  
-
-package ir;
 
 import java.util.LinkedList;
 import java.util.ListIterator;

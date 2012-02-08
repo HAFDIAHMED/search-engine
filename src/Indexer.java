@@ -6,8 +6,6 @@
  *   Second version: Johan Boye, 2012
  */  
 
-
-
 import java.io.File;
 import java.io.Reader;
 import java.io.FileReader;
@@ -21,7 +19,6 @@ import org.apache.pdfbox.cos.COSDocument;
 import org.apache.pdfbox.pdfparser.*;
 import org.apache.pdfbox.util.PDFTextStripper;
 import org.apache.pdfbox.pdmodel.PDDocument;
-
 
 /**
  *   Processes a directory structure and indexes all PDF and text files.
