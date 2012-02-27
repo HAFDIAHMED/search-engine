@@ -10,6 +10,7 @@
 
 import java.util.LinkedList;
 import java.util.HashMap;
+import java.util.Collections;
 
 /**
  *   Implements an inverted index as a Hashtable from words to PostingsLists.
@@ -108,6 +109,7 @@ public class HashedIndex implements Index {
 			int termsLength = terms.size();
 			for (String term : terms) {
 				qv[termIndex] = termCount.get(term) / termsLength * idf[termIndex];
+				System.out.println("qv(" + termIndex + ") tfidf=" + qv[termIndex] + " freq=" + termCount.get(term) + " len="+termsLength + " idf="+idf[termIndex]);
 				++termIndex;
 			}
 
@@ -121,7 +123,8 @@ public class HashedIndex implements Index {
 						resultDocIds.put(entry.docID, currentDocIdx++);
 
 					// TF_a * IDF
-					dv[idx][termIndex] = entry.getFrequency() / docLengths.get("" + entry.docID) * idf[termIndex];
+					dv[idx][termIndex] = (double) entry.getFrequency() / docLengths.get("" + entry.docID) * idf[termIndex];
+					System.out.println("dv(" + idx + ":" + termIndex + ") tfidf=" + dv[idx][termIndex] + " freq=" + entry.getFrequency() + " len="+docLengths.get("" + entry.docID) + " idf="+idf[termIndex]);
 				}
 
 				// Merge (union) each PostingsList
@@ -131,10 +134,20 @@ public class HashedIndex implements Index {
 			}
 
 			// Calculate cos similarity of each document
-			//for (int d = 0; d < numResultDocIDs; ++d) {
-			//}
+			for (PostingsEntry pe : result.list) {
+				double nom = .0, denom1 = .0, denom2 = .0;
+				for (int i = 0; i < numTerms; ++i) {
+					double di = dv[resultDocIds.get(pe.docID)][i];
+					nom += qv[i] * di;
+					denom1 += qv[i] * qv[i];
+					denom2 += di * di;
+				}
+				pe.score = nom / (Math.sqrt(denom1) * Math.sqrt(denom2));
+				System.out.println("score=" + pe.score + " nom="+nom + " denom1="+denom1 + " denom2="+denom2);
+			}
 
 			// Sort documents according to their similarity score.
+			Collections.sort(result.list);
 		}
 
 		return (result == null) ? new PostingsList() : result;
