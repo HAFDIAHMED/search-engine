@@ -60,7 +60,6 @@ public class PostingsList implements Serializable {
 
 		PostingsList answer = new PostingsList();
 
-		// TODO: hitta var ett element försvinner vid sökning på praktiskt
 		try {
 			if (!it1.hasNext() || !it2.hasNext())
 				throw new NoSuchElementException();
@@ -78,9 +77,17 @@ public class PostingsList implements Serializable {
 					p2 = it2.next();
 				} else if (p1.docID < p2.docID) {
 					answer.add(p1);
+					if (!it1.hasNext()) {
+						answer.add(p2);
+						break;
+					}
 					p1 = it1.next();
 				} else {
 					answer.add(p2);
+					if (!it1.hasNext()) {
+						answer.add(p1);
+						break;
+					}
 					p2 = it2.next();
 				}
 			}
