@@ -48,7 +48,7 @@ public class HashedIndex implements Index {
 	 */
 	public PostingsList search(LinkedList<String> terms, int queryType) {
 		PostingsList result = null;
-		//System.out.println(index.keySet().size());
+		System.out.println("===================================================");
 
 		// Normal word queries
 		if (queryType != Index.RANKED_QUERY) {
@@ -86,7 +86,9 @@ public class HashedIndex implements Index {
 				termResults[termIndex] = getPostings(term);
 
 				int df = termResults[termIndex].size();
-				idf[termIndex] = (df > 0) ? Math.log10((double) numDocuments / df) : 0;
+				// TODO: tweak constant
+				idf[termIndex] = (df > 0) ? Math.log10((double) numDocuments / df) + 0.1 : 0;
+				System.out.println("idf(" + term + ")=" + idf[termIndex] + " df="+df + " numDocuments="+numDocuments);
 
 				for (PostingsEntry entry : termResults[termIndex].list) {
 					// Determine index mapping for document
@@ -108,8 +110,9 @@ public class HashedIndex implements Index {
 			termIndex = 0;
 			int termsLength = terms.size();
 			for (String term : terms) {
+				// TODO: fix
 				qv[termIndex] = termCount.get(term) / termsLength * idf[termIndex];
-				System.out.println("qv(" + termIndex + ") tfidf=" + qv[termIndex] + " freq=" + termCount.get(term) + " len="+termsLength + " idf="+idf[termIndex]);
+				System.out.println("qv(" + termIndex + ") tfidf=" + qv[termIndex] + " freq=" + termCount.get(term) + " len="+termsLength);
 				++termIndex;
 			}
 
@@ -124,7 +127,7 @@ public class HashedIndex implements Index {
 
 					// TF_a * IDF
 					dv[idx][termIndex] = (double) entry.getFrequency() / docLengths.get("" + entry.docID) * idf[termIndex];
-					System.out.println("dv(" + idx + ":" + termIndex + ") tfidf=" + dv[idx][termIndex] + " freq=" + entry.getFrequency() + " len="+docLengths.get("" + entry.docID) + " idf="+idf[termIndex]);
+					System.out.println("dv(" + idx + ":" + termIndex + ") tfidf=" + dv[idx][termIndex] + " freq=" + entry.getFrequency() + " len="+docLengths.get("" + entry.docID));
 				}
 
 				// Merge (union) each PostingsList

@@ -158,14 +158,11 @@ public class SearchGUI extends JFrame {
 						buf.append( searchstring + ": " + p.size() + " matching document(s)\n\n" );
 						for ( int i=0; i<p.size(); i++ ) {
 							PostingsEntry pe = p.get(i);
-							buf.append( " " + i + ". " );
+							buf.append( " " + (i+1) + ":" );
 							String filename = indexer.index.docIDs.get( "" + pe.docID );
-							if ( filename == null ) {
-								buf.append( "" + pe.docID );
-							}
-							else {
-								buf.append( filename );
-							}
+							if ( filename != null )
+								buf.append( " " + filename );
+							buf.append( " [" + pe.docID + "]" );
 							if ( queryType == Index.RANKED_QUERY ) {
 								buf.append( "   " + String.format( "%.3f", pe.score ));
 							}
