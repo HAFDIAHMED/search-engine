@@ -53,6 +53,8 @@ public class HashedIndex implements Index {
 		for (String term : searchterms) {
 			if (result == null)
 				result = getPostings(term);
+			else if (queryType == Index.UNION_QUERY)
+				result = result.unionWith(getPostings(term));
 			else
 				result = result.intersect(getPostings(term), queryType == Index.PHRASE_QUERY);
 		}

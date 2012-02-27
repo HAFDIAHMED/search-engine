@@ -18,8 +18,9 @@ public interface Index {
 
 	/* Query types */
 	public static final int INTERSECTION_QUERY = 0;
-	public static final int PHRASE_QUERY = 1;
-	public static final int RANKED_QUERY = 2;
+	public static final int UNION_QUERY = 1;
+	public static final int PHRASE_QUERY = 2;
+	public static final int RANKED_QUERY = 4;
 		
 	public HashMap<String, String> docIDs = new HashMap<String,String>();
 	public HashMap<String,Integer> docLengths = new HashMap<String,Integer>();

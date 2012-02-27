@@ -76,6 +76,7 @@ public class SearchGUI extends JFrame {
 	JMenuItem saveItem = new JMenuItem( "Save index and exit" );
 	JMenuItem quitItem = new JMenuItem( "Quit" );
 	JRadioButtonMenuItem intersectionItem = new JRadioButtonMenuItem( "Intersection query" );
+	JRadioButtonMenuItem unionItem = new JRadioButtonMenuItem( "Union query" );
 	JRadioButtonMenuItem phraseItem = new JRadioButtonMenuItem( "Phrase query" );
 	JRadioButtonMenuItem rankedItem = new JRadioButtonMenuItem( "Ranked retrieval" );
 	ButtonGroup queries = new ButtonGroup();
@@ -100,9 +101,11 @@ public class SearchGUI extends JFrame {
 		fileMenu.add( saveItem );
 		fileMenu.add( quitItem );
 		optionsMenu.add( intersectionItem );
+		optionsMenu.add( unionItem );
 		optionsMenu.add( phraseItem );
 		optionsMenu.add( rankedItem );
 		queries.add( intersectionItem );
+		queries.add( unionItem );
 		queries.add( phraseItem );
 		queries.add( rankedItem );
 		intersectionItem.setSelected( true );
@@ -152,20 +155,21 @@ public class SearchGUI extends JFrame {
 					}
 					StringBuffer buf = new StringBuffer();
 					if ( p != null ) {
-						buf.append( "\nFound " + p.size() + " matching document(s)\n\n" );
+						buf.append( searchstring + ": " + p.size() + " matching document(s)\n\n" );
 						for ( int i=0; i<p.size(); i++ ) {
+							PostingsEntry pe = p.get(i);
 							buf.append( " " + i + ". " );
-							String filename = indexer.index.docIDs.get( "" + p.get(i).docID );
+							String filename = indexer.index.docIDs.get( "" + pe.docID );
 							if ( filename == null ) {
-								buf.append( "" + p.get(i).docID );
+								buf.append( "" + pe.docID );
 							}
 							else {
 								buf.append( filename );
 							}
 							if ( queryType == Index.RANKED_QUERY ) {
-								buf.append( "   " + String.format( "%.3f", p.get(i).score ));
+								buf.append( "   " + String.format( "%.3f", pe.score ));
 							}
-							buf.append( "  (" + p.get(i).offsets.size() + ")\n" );
+							buf.append( "  (" + pe.offsets.size() + ") " + pe.docID + "\n" );
 						}
 					}
 					else {
@@ -205,6 +209,13 @@ public class SearchGUI extends JFrame {
 				}
 			};
 		intersectionItem.addActionListener( setIntersectionQuery );
+
+		Action setUnionQuery = new AbstractAction() {
+				public void actionPerformed( ActionEvent e ) {
+					queryType = Index.UNION_QUERY;
+				}
+			};
+		unionItem.addActionListener( setUnionQuery );
 				
 		Action setPhraseQuery = new AbstractAction() {
 				public void actionPerformed( ActionEvent e ) {
