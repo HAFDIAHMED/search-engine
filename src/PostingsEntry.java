@@ -30,6 +30,10 @@ public class PostingsEntry implements Comparable<PostingsEntry>, Serializable {
 		return offsets.add(offset);
 	}
 
+	public int getFrequency() {
+		return offsets.size();
+	}
+
 	/**
 	 *  PostingsEntries are compared by their score (only relevant 
 	 *  in ranked retrieval).

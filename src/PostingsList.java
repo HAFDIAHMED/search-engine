@@ -13,11 +13,11 @@ import java.util.NoSuchElementException;
 import java.io.Serializable;
 
 /**
- *   A list of postings for a given word.
+ *   A list of postings (for a given word or query).
  */
 public class PostingsList implements Serializable {
 	/** The postings list as a linked list. */
-	private LinkedList<PostingsEntry> list = new LinkedList<PostingsEntry>();
+	public LinkedList<PostingsEntry> list = new LinkedList<PostingsEntry>();
 
 	/**  Number of postings in this list  */
 	public int size() {
