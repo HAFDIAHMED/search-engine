@@ -169,7 +169,7 @@ public class SearchGUI extends JFrame {
 							if ( queryType == Index.RANKED_QUERY ) {
 								buf.append( "   " + String.format( "%.3f", pe.score ));
 							}
-							buf.append( "  (" + pe.offsets.size() + ") " + pe.docID + "\n" );
+							buf.append( "  (" + pe.offsets.size() + ")\n" );
 						}
 					}
 					else {
