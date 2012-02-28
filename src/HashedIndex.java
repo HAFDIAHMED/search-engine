@@ -109,7 +109,7 @@ public class HashedIndex implements Index {
 			// Calculate TFIDF for query terms
 			termIndex = 0;
 			int termsLength = terms.size();
-			for (String term : terms) {
+			for (String term : termCount.keySet()) {
 				// TODO: fix
 				qv[termIndex] = (double) termCount.get(term) / termsLength * idf[termIndex];
 				System.out.println("qv(" + term + ") tfidf=" + qv[termIndex] + " freq=" + termCount.get(term) + " len="+termsLength);
