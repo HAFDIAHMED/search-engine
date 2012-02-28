@@ -37,7 +37,7 @@ public class SearchGUI extends JFrame {
 	public static final int MAX_NUMBER_OF_INDEX_FILES = 10;
 
 	/**  The query type (either intersection, phrase, or ranked). */
-	int queryType = Index.INTERSECTION_QUERY;
+	int queryType = Index.RANKED_QUERY;
 
 	/**  The index type (either hashed or mega). */
 	int indexType = Index.HASHED_INDEX;
@@ -108,7 +108,7 @@ public class SearchGUI extends JFrame {
 		queries.add( unionItem );
 		queries.add( phraseItem );
 		queries.add( rankedItem );
-		intersectionItem.setSelected( true );
+		rankedItem.setSelected( true );
 		p.add( menuBar );
 		// Logo
 		JPanel p1 = new JPanel();
@@ -160,13 +160,12 @@ public class SearchGUI extends JFrame {
 							PostingsEntry pe = p.get(i);
 							buf.append( " " + (i+1) + ":" );
 							String filename = indexer.index.docIDs.get( "" + pe.docID );
-							if ( filename != null )
-								buf.append( " " + filename );
-							buf.append( " [" + pe.docID + "]" );
-							if ( queryType == Index.RANKED_QUERY ) {
-								buf.append( "   " + String.format( "%.3f", pe.score ));
-							}
-							buf.append( "  (" + pe.offsets.size() + ")\n" );
+							buf.append( " " + (filename != null ? filename : pe.docID) + "  ");
+							if ( queryType == Index.RANKED_QUERY )
+								buf.append( String.format( "(%.3f)", pe.score ));
+							else
+								buf.append( "(" + pe.offsets.size() + ")" );
+							buf.append("\n");
 						}
 					}
 					else {
