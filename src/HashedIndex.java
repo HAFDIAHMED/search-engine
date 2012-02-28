@@ -87,7 +87,7 @@ public class HashedIndex implements Index {
 
 				int df = termResults[termIndex].size();
 				// TODO: tweak constant
-				idf[termIndex] = (df > 0) ? Math.log10((double) numDocuments / df) + 0.1 : 0;
+				idf[termIndex] = (df > 0) ? Math.log10((double) numDocuments / df) + 1 : 0;
 				System.out.println("idf(" + term + ")=" + idf[termIndex] + " df="+df + " numDocuments="+numDocuments);
 
 				for (PostingsEntry entry : termResults[termIndex].list) {
@@ -111,8 +111,8 @@ public class HashedIndex implements Index {
 			int termsLength = terms.size();
 			for (String term : terms) {
 				// TODO: fix
-				qv[termIndex] = termCount.get(term) / termsLength * idf[termIndex];
-				System.out.println("qv(" + termIndex + ") tfidf=" + qv[termIndex] + " freq=" + termCount.get(term) + " len="+termsLength);
+				qv[termIndex] = (double) termCount.get(term) / termsLength * idf[termIndex];
+				System.out.println("qv(" + term + ") tfidf=" + qv[termIndex] + " freq=" + termCount.get(term) + " len="+termsLength);
 				++termIndex;
 			}
 
@@ -127,7 +127,7 @@ public class HashedIndex implements Index {
 
 					// TF_a * IDF
 					dv[idx][termIndex] = (double) entry.getFrequency() / docLengths.get("" + entry.docID) * idf[termIndex];
-					System.out.println("dv(" + idx + ":" + termIndex + ") tfidf=" + dv[idx][termIndex] + " freq=" + entry.getFrequency() + " len="+docLengths.get("" + entry.docID));
+					System.out.println("dv(" + idx + ":" + terms.get(termIndex) + ") tfidf=" + dv[idx][termIndex] + " freq=" + entry.getFrequency() + " len="+docLengths.get("" + entry.docID));
 				}
 
 				// Merge (union) each PostingsList
@@ -146,7 +146,7 @@ public class HashedIndex implements Index {
 					denom2 += di * di;
 				}
 				pe.score = nom / (Math.sqrt(denom1) * Math.sqrt(denom2));
-				System.out.println("score=" + pe.score + " nom="+nom + " denom1="+denom1 + " denom2="+denom2);
+				System.out.println("docId=" + pe.docID + " score=" + pe.score + " nom="+nom + " denom1="+denom1 + " denom2="+denom2);
 			}
 
 			// Sort documents according to their similarity score.
