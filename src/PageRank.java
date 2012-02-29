@@ -3,12 +3,13 @@
  *   Information Retrieval course at KTH.
  * 
  *   First version:  Johan Boye, 2012
+ *   This version: Victor Hallberg, Johan Stjernberg
  */  
 
 import java.util.*;
 import java.io.*;
 
-public class PageRank{
+public class PageRank {
 
 	/**  
 	 *   Maximal number of documents. We're assuming here that we
@@ -57,7 +58,7 @@ public class PageRank{
 
 	/**
 	 *   Convergence criterion: Transition probabilities do not 
-	 *   change more that EPSILON from one iteration to another.
+	 *   change more than EPSILON from one iteration to another.
 	 */
 	final static double EPSILON = 0.0001;
 
@@ -66,6 +67,34 @@ public class PageRank{
 	 *   of whether the transistion probabilities converge or not.
 	 */
 	final static int MAX_NUMBER_OF_ITERATIONS = 1000;
+
+
+	/* --------------------------------------------- */
+
+	/*
+	 *   Computes the pagerank of each document.
+	 */
+	void computePagerank(int num) {
+		double[] x = new double[num];
+		double[] xp = new double[num]; // x'
+
+		xp[0] = 1;
+
+		// While |x-x'| > epsilon
+		while (true) {
+			double res = 0.0;
+			for (int i = 0; i < num; ++i)
+				res += Math.pow(x[i] - xp[i], 2);
+			res = Math.sqrt(res);
+
+			if (res <= EPSILON) break; // |x-x'| < epsilon
+
+			// x = x'
+			System.arraycopy(xp, 0, x, 0, num);
+			// x' = xG;
+		}
+
+	}
 
 	
 	/* --------------------------------------------- */
@@ -149,21 +178,6 @@ public class PageRank{
 		System.err.println( "Read " + fileIndex + " number of documents" );
 		return fileIndex;
 	}
-
-
-	/* --------------------------------------------- */
-
-	/*
-	 *   Computes the pagerank of each document.
-	 */
-	void computePagerank( int numberOfDocs ) {
-		//
-		//   YOUR CODE HERE
-		//
-	}
-
-
-	/* --------------------------------------------- */
 
 
 	public static void main( String[] args ) {
