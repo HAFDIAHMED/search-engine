@@ -17,6 +17,9 @@ public class PageRank {
 	 */
 	final static int MAX_NUMBER_OF_DOCS = 2000000;
 
+	/** Number of documents */
+	int numDocs = 0;
+
 	/**
 	 *   Mapping from document names to document numbers.
 	 */
@@ -29,13 +32,13 @@ public class PageRank {
 
 	/**  
 	 *   A memory-efficient representation of the transition matrix.
-	 *   The outlinks are represented as a Hashtable, whose keys are 
+	 *   The outlinks are represented as a Hashtable, whose keys are
 	 *   the numbers of the documents linked from.
 	 *
-	 *   The value corresponding to key i is a Hashtable whose keys are 
+	 *   The value corresponding to key i is a Hashtable whose keys are
 	 *   all the numbers of documents j that i links to.
 	 *
-	 *   If there are no outlinks from i, then the value corresponding 
+	 *   If there are no outlinks from i, then the value corresponding
 	 *   key i is null.
 	 */
 	Hashtable<Integer,Hashtable<Integer,Boolean>> links = new Hashtable<Integer,Hashtable<Integer,Boolean>>();
@@ -74,36 +77,33 @@ public class PageRank {
 	/*
 	 *   Computes the pagerank of each document.
 	 */
-	void computePagerank(int num) {
+	void computePagerank(boolean approximate) {
 		System.out.println("computePagerank starting");
 
 		// Rank array (x)
-		double[] rank = new double[num];
-		double[] prev = new double[num];
+		double[] rank = new double[numDocs];
+		double[] prev = new double[numDocs];
 
 		// Starting probabilities
-		double startingProb = (double) 1 / num;
-		for (int i = 0; i < num; ++i)
+		double startingProb = (double) 1 / numDocs;
+		for (int i = 0; i < numDocs; ++i)
 			rank[i] = startingProb;
 		//rank[0] = 1;
 
 		int iter = 0;
-		double sum = 0;
 
-		while (iter++ < 50) {
-			/*
+		while (iter++ < MAX_NUMBER_OF_ITERATIONS) {
 			// Print page ranks of all documents
 			System.out.println("Before iteration " + iter + ":");
-			for (int i = 0; i < num; ++i)
+			for (int i = 0; i < numDocs; ++i)
 				System.out.println(docNames[i] +
 				                   "\t rank: " + String.format("%.5f", rank[i]) +
 				                   "\t " + numOutLinks[i] + " outgoing");
 			System.out.println("=================================================");
-			*/
-			
+
 			// Reached stable state? (|x-x'| < epsilon)
 			double res = 0.0;
-			for (int i = 0; i < num; ++i)
+			for (int i = 0; i < numDocs; ++i)
 				res += Math.pow(rank[i] - prev[i], 2);
 			if (Math.sqrt(res) <= EPSILON) {
 				System.out.println("Reached stable state after " + iter + " iterations.");
@@ -112,40 +112,42 @@ public class PageRank {
 
 			// Use power iteration to compute x' = xG;
 			// links -> hashtable[doc] -> hashtable[links in doc] -> true
-			double[] next = new double[num];
+			double[] next = new double[numDocs];
 
-			for (int p = 0; p < num; ++p) {
+			for (int p = 0; p < numDocs; ++p) {
 				Hashtable<Integer,Boolean> pOut = links.get(p);
 
 				if (pOut == null)
 					continue;
 
 				// Increment page rank for all pages which p links to
-				for (int q = 0; q < num; ++q) {
+				for (int q = 0; q < numDocs; ++q) {
 					// Page p links to page q
 					if (pOut.containsKey(q))
-						next[q] += rank[p] / numOutLinks[p];
+						next[q] += rank[p] * (1-BORED) / numOutLinks[p];
 				}
-			}
 
-			// Adjust page ranks according to formula to enable jumps due to boredom
-			sum = 0; // sum of all ranks used for normalization later
-			for (int i = 0; i < num; ++i) {
-				next[i] = (1-BORED)*next[i] + BORED/num;
-				sum += next[i];
+				// Adjust page ranks according to formula to enable jumps due to boredom
+				next[p] += BORED/numDocs;
+				if (approximate)
+					next[p] += (double) numSinks / numDocs / numDocs;
 			}
 
 			// x = x'
 			prev = rank;
 			rank = next;
-		} // power iterations
+		} // iterations
+
 
 		// Normalize ranks
-		for (int i = 0; i < num; ++i)
+		double sum = 0;
+		for (int p = 0; p < numDocs; ++p)
+			sum += rank[p];
+		for (int i = 0; i < numDocs; ++i)
 			rank[i] /= sum;
 
 		// Print page ranks of all documents
-		for (int i = 0; i < num; ++i)
+		for (int i = 0; i < numDocs; ++i)
 			System.out.println(docNames[i] +
 												 "\t rank: " + String.format("%.5f", rank[i]) +
 												 "\t " + numOutLinks[i] + " outgoing");
@@ -156,8 +158,8 @@ public class PageRank {
 
 
 	public PageRank( String filename ) {
-		int noOfDocs = readDocs( filename );
-		computePagerank( noOfDocs );
+		readDocs( filename );
+		computePagerank(false);
 	}
 
 
@@ -165,39 +167,37 @@ public class PageRank {
 
 
 	/**
-	 *   Reads the documents and creates the docs table. When this method 
-	 *   finishes executing then the @code{numOutLinks} vector of outlinks is 
+	 *   Reads the documents and creates the docs table. When this method
+	 *   finishes executing then the @code{numOutLinks} vector of outlinks is
 	 *   initialised for each doc, and the @code{p} matrix is filled with
 	 *   zeroes (that indicate direct links) and NO_LINK (if there is no
-	 *   direct links. 
-	 *
-	 *   @return the number of documents read.
+	 *   direct links.
 	 */
-	int readDocs( String filename ) {
-		int fileIndex = 0;
+	void readDocs( String filename ) {
+		numDocs = 0;
 		try {
 			System.err.print( "Reading file... " );
 			BufferedReader in = new BufferedReader( new FileReader( filename ));
 			String line;
-			while ((line = in.readLine()) != null && fileIndex<MAX_NUMBER_OF_DOCS ) {
+			while ((line = in.readLine()) != null && numDocs<MAX_NUMBER_OF_DOCS ) {
 				int index = line.indexOf( ";" );
 				String title = line.substring( 0, index );
 				Integer fromdoc = docNumbers.get( title );
 				//  Have we seen this document before?
-				if ( fromdoc == null ) {		
+				if ( fromdoc == null ) {
 					// This is a previously unseen doc, so add it to the table.
-					fromdoc = fileIndex++;
+					fromdoc = numDocs++;
 					docNumbers.put( title, fromdoc );
 					docNames[fromdoc] = title;
 				}
 				// Check all outlinks.
 				StringTokenizer tok = new StringTokenizer( line.substring(index+1), "," );
-				while ( tok.hasMoreTokens() && fileIndex<MAX_NUMBER_OF_DOCS ) {
+				while ( tok.hasMoreTokens() && numDocs<MAX_NUMBER_OF_DOCS ) {
 					String otherTitle = tok.nextToken();
 					Integer otherDoc = docNumbers.get( otherTitle );
 					if ( otherDoc == null ) {
 						// This is a previousy unseen doc, so add it to the table.
-						otherDoc = fileIndex++;
+						otherDoc = numDocs++;
 						docNumbers.put( otherTitle, otherDoc );
 						docNames[otherDoc] = otherTitle;
 					}
@@ -212,14 +212,14 @@ public class PageRank {
 					}
 				}
 			}
-			if ( fileIndex >= MAX_NUMBER_OF_DOCS ) {
+			if ( numDocs >= MAX_NUMBER_OF_DOCS ) {
 				System.err.print( "stopped reading since documents table is full. " );
 			}
 			else {
 				System.err.print( "done. " );
 			}
 			// Compute the number of sinks.
-			for ( int i=0; i<fileIndex; i++ ) {
+			for ( int i=0; i<numDocs; i++ ) {
 				if ( numOutLinks[i] == 0 )
 					numSinks++;
 			}
@@ -230,8 +230,7 @@ public class PageRank {
 		catch ( IOException e ) {
 			System.err.println( "Error reading file " + filename );
 		}
-		System.err.println( "Read " + fileIndex + " number of documents" );
-		return fileIndex;
+		System.err.println( "Read " + numDocs + " number of documents" );
 	}
 
 
