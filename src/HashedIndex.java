@@ -19,6 +19,10 @@ public class HashedIndex implements Index {
 	/** The index as a hashtable. */
 	private HashMap<String,PostingsList> index = new HashMap<String,PostingsList>();
 
+	public static double logw(double tf) {
+		return (tf <= 0) ? 0 : 1 + Math.log10(tf);
+	}
+
 	/**
 	 *  Inserts this token in the index.
 	 */
@@ -44,15 +48,14 @@ public class HashedIndex implements Index {
 	}
 
 	/**
-	 *  Searches the index for postings matching the query in @code{terms}.
+	 *  Searches the index for postings matching the query in @code{searchTerms}.
 	 */
-	public PostingsList search(LinkedList<String> terms, int queryType) {
+	public PostingsList search(LinkedList<String> searchTerms, int queryType) {
 		PostingsList result = null;
-		System.out.println("===================================================");
 
 		// Normal word queries
 		if (queryType != Index.RANKED_QUERY) {
-			for (String term : terms) {
+			for (String term : searchTerms) {
 				if (result == null)
 					result = getPostings(term);
 			else if (queryType == Index.UNION_QUERY)
@@ -63,16 +66,19 @@ public class HashedIndex implements Index {
 		}
 		// Ranked queries
 		else {
+			System.out.println("===================================================");
 			int numDocuments = docIDs.size();
 
 			// Term frequency in query
-			HashMap<String, Integer> termCount = new HashMap<String, Integer>();
-			for (String term : terms) {
-				Integer count = termCount.get(term);          
-				termCount.put(term, (count == null) ? 1 : count + 1);
+			HashMap<String, Integer> termCounts = new HashMap<String, Integer>();
+			for (String term : searchTerms) {
+				Integer count = termCounts.get(term);          
+				termCounts.put(term, (count == null) ? 1 : count + 1);
 			}
 
-			int numTerms = termCount.size();
+			int termsLength = searchTerms.size();
+			int numTerms = termCounts.size();
+			String[] terms = termCounts.keySet().toArray(new String[0]); // unique terms
 			double[] idf = new double[numTerms];
 
 			// Query for each term separately
@@ -82,13 +88,12 @@ public class HashedIndex implements Index {
 
 			// Query for each distinct term and create docID -> index mapping
 			int termIndex = 0;
-			for (String term : termCount.keySet()) {
+			for (String term : terms) {
 				termResults[termIndex] = getPostings(term);
 
 				int df = termResults[termIndex].size();
 				// TODO: tweak constant
-				idf[termIndex] = (df > 0) ? Math.log10((double) numDocuments / df) + 1 : 0;
-				System.out.println("idf(" + term + ")=" + idf[termIndex] + " df="+df + " numDocuments="+numDocuments);
+				idf[termIndex] = (df < 1) ? 0 : Math.log10((double) numDocuments / df) + 1;
 
 				for (PostingsEntry entry : termResults[termIndex].list) {
 					// Determine index mapping for document
@@ -102,17 +107,19 @@ public class HashedIndex implements Index {
 
 			int numResultDocIDs = resultDocIds.size();
 
+			double[] scores = new double[numResultDocIDs];
+
 			// TFIDF vectors
 			double[] qv = new double[numTerms];
 			double[][] dv = new double[numResultDocIDs][numTerms];
 
-			// Calculate TFIDF for query terms
+			// Calculate TFIDF for query searchTerms
 			termIndex = 0;
-			int termsLength = terms.size();
-			for (String term : termCount.keySet()) {
+			for (String term : terms) {
 				// TODO: fix
-				qv[termIndex] = (double) termCount.get(term) / termsLength * idf[termIndex];
-				System.out.println("qv(" + term + ") tfidf=" + qv[termIndex] + " freq=" + termCount.get(term) + " len="+termsLength);
+				//qv[termIndex] = logw(termCounts.get(term));
+				qv[termIndex] = (double) termCounts.get(term) * idf[termIndex];
+				//System.out.println("qv(" + term + ") tfidf=" + qv[termIndex] + " freq=" + termCounts.get(term) + " len="+termsLength);
 				++termIndex;
 			}
 
@@ -125,9 +132,17 @@ public class HashedIndex implements Index {
 					if (idx == null) // assign next available index
 						resultDocIds.put(entry.docID, currentDocIdx++);
 
+					int queryTf = termCounts.get(terms[termIndex]);
+					int docTf = entry.getFrequency();
+					int docLength = docLengths.get("" + entry.docID);
+
+					double q = logw((double) queryTf) * idf[termIndex];
+					double d = logw((double) docTf) * idf[termIndex];
+					scores[idx] += q * d / (1 + Math.log10(docLength));
+
 					// TF_a * IDF
-					dv[idx][termIndex] = (double) entry.getFrequency() / docLengths.get("" + entry.docID) * idf[termIndex];
-					System.out.println("dv(" + idx + ":" + terms.get(termIndex) + ") tfidf=" + dv[idx][termIndex] + " freq=" + entry.getFrequency() + " len="+docLengths.get("" + entry.docID));
+					dv[idx][termIndex] = (double) entry.getFrequency() * idf[termIndex];
+					//System.out.println("dv(" + idx + ":" + searchTerms.get(termIndex) + ") tfidf=" + dv[idx][termIndex] + " freq=" + entry.getFrequency() + " len="+docLengths.get("" + entry.docID));
 				}
 
 				// Merge (union) each PostingsList
@@ -138,6 +153,7 @@ public class HashedIndex implements Index {
 
 			// Calculate cos similarity of each document
 			for (PostingsEntry pe : result.list) {
+				/*
 				double nom = .0, denom1 = .0, denom2 = .0;
 				for (int i = 0; i < numTerms; ++i) {
 					double di = dv[resultDocIds.get(pe.docID)][i];
@@ -145,8 +161,10 @@ public class HashedIndex implements Index {
 					denom1 += qv[i] * qv[i];
 					denom2 += di * di;
 				}
-				pe.score = nom / (Math.sqrt(denom1) * Math.sqrt(denom2));
-				System.out.println("docId=" + pe.docID + " score=" + pe.score + " nom="+nom + " denom1="+denom1 + " denom2="+denom2);
+				pe.score = nom / ( Math.sqrt(denom1) * Math.sqrt(denom2) );
+				*/
+				//System.out.println("docId=" + pe.docID + " score=" + pe.score + " nom="+nom + " denom1="+denom1 + " denom2="+denom2);
+				pe.score = scores[resultDocIds.get(pe.docID)];
 			}
 
 			// Sort documents according to their similarity score.
