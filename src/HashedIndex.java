@@ -79,7 +79,7 @@ public class HashedIndex implements Index {
 			int termsLength = searchTerms.size();
 			int numTerms = termCounts.size();
 			String[] terms = termCounts.keySet().toArray(new String[0]); // unique terms
-			double[] idf = new double[numTerms];
+			double[] queryTFIDF = new double[numTerms];
 
 			// Query for each term separately
 			PostingsList[] termResults = new PostingsList[numTerms];
@@ -88,22 +88,24 @@ public class HashedIndex implements Index {
 
 			// Query for each distinct term and create docID -> index mapping
 			// Also compute IDF for each term
-			int termIndex = 0;
+			int idx = 0;
 			for (String term : terms) {
-				termResults[termIndex] = getPostings(term);
+				termResults[idx] = getPostings(term);
 
-				// Calculate IDF terms
-				int df = termResults[termIndex].size();
-				idf[termIndex] = (df < 1) ? 0 : Math.log10((double) numDocuments / df) + 1;
+				// Calculate query TFIDF
+				int tf = termCounts.get(terms[idx]);
+				int df = termResults[idx].size();
+				double idf = (df < 1) ? 0 : Math.log10((double) numDocuments / df) + 1;
+				queryTFIDF[idx] = tf * idf;
 
-				for (PostingsEntry entry : termResults[termIndex].list) {
+				for (PostingsEntry entry : termResults[idx].list) {
 					// Determine index mapping for document
-					Integer idx = resultDocIds.get(entry.docID);
-					if (idx == null) // assign next available index
+					Integer entryIndex = resultDocIds.get(entry.docID);
+					if (entryIndex == null) // assign next available index
 						resultDocIds.put(entry.docID, currentDocIdx++);
 				}
 
-				++termIndex;
+				++idx;
 			}
 
 			int numResultDocIDs = resultDocIds.size();
@@ -111,25 +113,24 @@ public class HashedIndex implements Index {
 			double[] scores = new double[numResultDocIDs];
 
 			// Calculate scores for each document (in regards to each search term)
-			termIndex = 0;
+			idx = 0;
 			for (PostingsList termResult : termResults) {
 				for (PostingsEntry entry : termResult.list) {
 					// Determine index mapping for document
-					Integer idx = resultDocIds.get(entry.docID);
-					if (idx == null) // assign next available index
+					Integer entryIndex = resultDocIds.get(entry.docID);
+					if (entryIndex == null) // assign next available index
 						resultDocIds.put(entry.docID, currentDocIdx++);
 
 					// Compute document score in regard to this term
-					int qTF = termCounts.get(terms[termIndex]);
 					int dTF = entry.getFrequency();
 					int dLength = docLengths.get("" + entry.docID);
-					scores[idx] += qTF / Math.sqrt(termsLength) * dTF / Math.sqrt(dLength) * idf[termIndex];
+					scores[entryIndex] += queryTFIDF[idx] * dTF / Math.sqrt(termsLength) / Math.sqrt(dLength);
 				}
 
 				// Merge (union) each PostingsList
 				result = (result == null) ? termResult : result.unionWith(termResult);
 
-				++termIndex;
+				++idx;
 			}
 
 			// Assign score to corresponding document (postings) entries
