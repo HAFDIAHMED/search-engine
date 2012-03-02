@@ -87,12 +87,13 @@ public class HashedIndex implements Index {
 			int currentDocIdx = 0;
 
 			// Query for each distinct term and create docID -> index mapping
+			// Also compute IDF for each term
 			int termIndex = 0;
 			for (String term : terms) {
 				termResults[termIndex] = getPostings(term);
 
+				// Calculate IDF terms
 				int df = termResults[termIndex].size();
-				// TODO: tweak constant
 				idf[termIndex] = (df < 1) ? 0 : Math.log10((double) numDocuments / df) + 1;
 
 				for (PostingsEntry entry : termResults[termIndex].list) {
@@ -109,21 +110,7 @@ public class HashedIndex implements Index {
 
 			double[] scores = new double[numResultDocIDs];
 
-			// TFIDF vectors
-			double[] qv = new double[numTerms];
-			double[][] dv = new double[numResultDocIDs][numTerms];
-
-			// Calculate TFIDF for query searchTerms
-			termIndex = 0;
-			for (String term : terms) {
-				// TODO: fix
-				//qv[termIndex] = logw(termCounts.get(term));
-				qv[termIndex] = (double) termCounts.get(term) * idf[termIndex];
-				//System.out.println("qv(" + term + ") tfidf=" + qv[termIndex] + " freq=" + termCounts.get(term) + " len="+termsLength);
-				++termIndex;
-			}
-
-			// Calculate TFIDF values for each document (in regards to each search term)
+			// Calculate scores for each document (in regards to each search term)
 			termIndex = 0;
 			for (PostingsList termResult : termResults) {
 				for (PostingsEntry entry : termResult.list) {
@@ -132,17 +119,11 @@ public class HashedIndex implements Index {
 					if (idx == null) // assign next available index
 						resultDocIds.put(entry.docID, currentDocIdx++);
 
-					int queryTf = termCounts.get(terms[termIndex]);
-					int docTf = entry.getFrequency();
-					int docLength = docLengths.get("" + entry.docID);
-
-					double q = logw((double) queryTf) * idf[termIndex];
-					double d = logw((double) docTf) * idf[termIndex];
-					scores[idx] += q * d / (1 + Math.log10(docLength));
-
-					// TF_a * IDF
-					dv[idx][termIndex] = (double) entry.getFrequency() * idf[termIndex];
-					//System.out.println("dv(" + idx + ":" + searchTerms.get(termIndex) + ") tfidf=" + dv[idx][termIndex] + " freq=" + entry.getFrequency() + " len="+docLengths.get("" + entry.docID));
+					// Compute document score in regard to this term
+					int qTF = termCounts.get(terms[termIndex]);
+					int dTF = entry.getFrequency();
+					int dLength = docLengths.get("" + entry.docID);
+					scores[idx] += qTF / Math.sqrt(termsLength) * dTF / Math.sqrt(dLength) * idf[termIndex];
 				}
 
 				// Merge (union) each PostingsList
@@ -151,21 +132,9 @@ public class HashedIndex implements Index {
 				++termIndex;
 			}
 
-			// Calculate cos similarity of each document
-			for (PostingsEntry pe : result.list) {
-				/*
-				double nom = .0, denom1 = .0, denom2 = .0;
-				for (int i = 0; i < numTerms; ++i) {
-					double di = dv[resultDocIds.get(pe.docID)][i];
-					nom += qv[i] * di;
-					denom1 += qv[i] * qv[i];
-					denom2 += di * di;
-				}
-				pe.score = nom / ( Math.sqrt(denom1) * Math.sqrt(denom2) );
-				*/
-				//System.out.println("docId=" + pe.docID + " score=" + pe.score + " nom="+nom + " denom1="+denom1 + " denom2="+denom2);
+			// Assign score to corresponding document (postings) entries
+			for (PostingsEntry pe : result.list)
 				pe.score = scores[resultDocIds.get(pe.docID)];
-			}
 
 			// Sort documents according to their similarity score.
 			Collections.sort(result.list);
