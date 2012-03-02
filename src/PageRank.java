@@ -70,6 +70,11 @@ public class PageRank {
 	 *   of whether the transistion probabilities converge or not.
 	 */
 	final static int MAX_NUMBER_OF_ITERATIONS = 1000;
+	
+	
+	private double[] rank;
+	
+	final static boolean VERBOSE_OUTPUT = false;
 
 
 	/* --------------------------------------------- */
@@ -81,7 +86,7 @@ public class PageRank {
 		System.out.println("Computing PageRank starting");
 
 		// Rank array (x)
-		double[] rank = new double[numDocs];
+		rank = new double[numDocs];
 		double[] prev = new double[numDocs]; // used for stable state checking
 
 		// Starting probabilities
@@ -149,15 +154,21 @@ public class PageRank {
 			rank[i] /= sum;
 
 		// Print page ranks of all documents
-		for (int i = 0; i < numDocs; ++i)
-			System.out.println(docNames[i] +
-				"\t rank: " + String.format("%.5f", rank[i]) +
-				"\t " + numOutLinks[i] + " outgoing");
+		double total = 0.0;
+		for (int i = 0; i < numDocs; ++i) {
+			total += rank[i];
+			if (VERBOSE_OUTPUT) 
+				System.out.println(docNames[i] +
+					"\t rank: " + String.format("%.5f", rank[i]) +
+					"\t " + numOutLinks[i] + " outgoing");			
+		}
+		System.out.println("Sum of all probabilities: " + total);
 	}
 
 	
 	/**
 	 *	Monte Carlo Complete Path implementation
+	 *	Note: actual amount of path walks are runs * numDocs.
 	 */
 	private void mcCompletePath(int runs) {
 		int[] hitCount = new int[numDocs];
@@ -167,12 +178,92 @@ public class PageRank {
 				int curr = j;
 				hitCount[curr]++;
 				for (int k = 0; k < numDocs - 1; k++) {
-					curr = mcMove(curr);
+					curr = mcMove(curr, false);
 					hitCount[curr]++;
 				}
 			}
 		}
 		mcPrintResult(hitCount, runs * numDocs * numDocs, "Complete Path");
+	}
+
+	/**
+	 *	Monte Carlo Complete Path Random start implementation.
+	 */
+	private void mcCompletePathRandomStart(int runs) {
+		int[] hitCount = new int[numDocs];
+		Random random = new Random();
+		for (int i = 0; i < runs; i++) {
+			// start walk at random
+			int curr = random.nextInt(numDocs);
+			hitCount[curr]++;
+			for (int k = 0; k < numDocs - 1; k++) {
+				curr = mcMove(curr, false);
+				hitCount[curr]++;
+			}
+		}
+		mcPrintResult(hitCount, runs * numDocs, "Complete Path Random Start");
+	}
+
+	/**
+	 *	Monte Carlo Complete Path Dangling Nodes implementation
+	 *	Note: actual amount of path walks are runs * numDocs.
+	 */
+	private void mcCompletePathDanglingNodes(int runs) {
+		int[] hitCount = new int[numDocs];
+		int n = 0;
+		for (int i = 0; i < runs; i++) {
+			for (int j = 0; j < numDocs; j++) {
+				// start walk at j
+				int curr = j;
+				hitCount[curr]++;
+				n++;
+				for (int k = 0; k < numDocs - 1; k++) {
+					curr = mcMove(curr, true);
+					if (curr == -1) {
+						break;
+					}
+					hitCount[curr]++;
+					n++;
+				}
+			}
+		}
+		mcPrintResult(hitCount, n, "Complete Path Dangling Nodes");
+	}
+	
+	/**
+	 *	Monte Carlo End-Point Cyclic start implementation
+	 *	Note: actual amount of path walks are runs * numDocs.
+	 */
+	private void mcEndPointCyclicStart(int runs) {
+		int[] hitCount = new int[numDocs];
+		for (int i = 0; i < runs; i++) {
+			for (int j = 0; j < numDocs; j++) {
+				// start walk at j
+				int curr = j;
+				for (int k = 0; k < numDocs - 1; k++) {
+					curr = mcMove(curr, false);
+				}
+				hitCount[curr]++;
+			}
+		}
+		mcPrintResult(hitCount, runs * numDocs, "End-Point Cyclic Start");
+	}
+	
+	/**
+	 *	Monte Carlo End-Point Random start implementation.
+	 */
+	private void mcEndPointRandomStart(int runs) {
+		int[] hitCount = new int[numDocs];
+		Random random = new Random();
+		for (int i = 0; i < runs; i++) {
+			// start walk at random
+			int curr = random.nextInt(numDocs);
+			for (int k = 0; k < numDocs - 1; k++) {
+				curr = mcMove(curr, false);
+			}
+			hitCount[curr]++;
+		}
+		mcPrintResult(hitCount, runs, "End-Point Random Start");
 	}
 	
 	/**
@@ -187,27 +278,38 @@ public class PageRank {
 		System.out.println("Monte Carlo " + name + " result");
 		System.out.println("=================================================");
 		double total = 0.0;
+		double diffTotal = 0.0;
 		double[] result = new double[numDocs];
 		for (int i = 0; i < numDocs; i++) {
 			result[i] = (double) hitCount[i] / totalHits;
+			double diff = Math.abs(rank[i]-result[i]);
 			total += result[i];
-			System.out.println(docNames[i] +
+			diffTotal += diff;
+			if (VERBOSE_OUTPUT)
+				System.out.println(docNames[i] +
 					"\t rank: " + String.format("%.5f", result[i]) +
+					"\t diff: " + String.format("%.5f", diff) +
 					"\t " + numOutLinks[i] + " outgoing");
 		}
-		System.out.println("Sum all probabilities: " + total);
+		System.out.println("Sum of all probabilities: " + total);
+		System.out.println("Total diff from Page Rank: " + diffTotal);
 		System.out.println("=================================================");
 	}
+	
 	
 	/**
 	 * Make a Monte Carlo move.
 	 * 
 	 * @param currentDoc The document to move from.
+	 * @param stopAtDangling Whether or not to stop if a dangling node is found.
 	 * @return The document to move to. Can be the same as currentDoc.
+	 * 		-1 if the node is dangling. System.exit(1) if no move is found.
 	 */
-	private int mcMove(int currentDoc) {
+	private int mcMove(int currentDoc, boolean stopAtDangling) {
 		Random random = new Random();
 		double chance = random.nextDouble();
+		if (stopAtDangling && numOutLinks[currentDoc] == 0 )
+			return -1; // stop walk here
 		if (chance < BORED || numOutLinks[currentDoc] == 0) { 
 			// Make a random move
 			return random.nextInt(numDocs);
@@ -233,7 +335,11 @@ public class PageRank {
 	public PageRank(String filename) {
 		readDocs(filename);
 		computePagerank(false);
+		mcEndPointRandomStart(10 * numDocs);
+		mcEndPointCyclicStart(10);
 		mcCompletePath(10);
+		mcCompletePathDanglingNodes(10);
+		mcCompletePathRandomStart(10 * numDocs);
 	}
 
 
