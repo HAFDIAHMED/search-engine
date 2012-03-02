@@ -92,7 +92,7 @@ public class PageRank {
 
 		int iter = 0;
 
-		while (iter++ < MAX_NUMBER_OF_ITERATIONS) {
+		while (iter++ < MAX_NUMBER_OF_ITERATIONS || !approximate) {
 			// Print page ranks of all documents
 			System.out.println("Before iteration " + iter + ":");
 			for (int i = 0; i < numDocs; ++i)
@@ -149,10 +149,81 @@ public class PageRank {
 		// Print page ranks of all documents
 		for (int i = 0; i < numDocs; ++i)
 			System.out.println(docNames[i] +
-												 "\t rank: " + String.format("%.5f", rank[i]) +
-												 "\t " + numOutLinks[i] + " outgoing");
+				"\t rank: " + String.format("%.5f", rank[i]) +
+				"\t " + numOutLinks[i] + " outgoing");
 	}
 
+	
+	/**
+	 *	Monte Carlo Complete Path implementation
+	 */
+	private void mcCompletePath(int runs) {
+		int[] hitCount = new int[numDocs];
+		for (int i = 0; i < runs; i++) {
+			for (int j = 0; j < numDocs; j++) {
+				// start walk at j
+				int curr = j;
+				hitCount[curr]++;
+				for (int k = 0; k < numDocs - 1; k++) {
+					curr = mcMove(curr);
+					hitCount[curr]++;
+				}
+			}
+		}
+		mcPrintResult(hitCount, runs * numDocs * numDocs, "Complete Path");
+	}
+	
+	/**
+	 * Print the results of a Monte Carlo algorithm.
+	 * 
+	 * @param hitCount The amounts of hits for each document.
+	 * @param totalHits The total amount of hits for all documents.
+	 * @param name The name of this variant of the Monte Carlo algorithm.
+	 */
+	private void mcPrintResult(int[] hitCount, int totalHits, String name) {
+		System.out.println("=================================================");
+		System.out.println("Monte Carlo " + name + " result");
+		System.out.println("=================================================");
+		double total = 0.0;
+		double[] result = new double[numDocs];
+		for (int i = 0; i < numDocs; i++) {
+			result[i] = (double) hitCount[i] / totalHits;
+			total += result[i];
+			System.out.println(docNames[i] +
+					"\t rank: " + String.format("%.5f", result[i]) +
+					"\t " + numOutLinks[i] + " outgoing");
+		}
+		System.out.println("Sum all probabilities: " + total);
+		System.out.println("=================================================");
+	}
+	
+	/**
+	 * Make a Monte Carlo move.
+	 * 
+	 * @param currentDoc The document to move from.
+	 * @return The document to move to. Can be the same as currentDoc.
+	 */
+	private int mcMove(int currentDoc) {
+		Random random = new Random();
+		double chance = random.nextDouble();
+		if (chance < BORED || numOutLinks[currentDoc] == 0) { 
+			// Make a random move
+			return random.nextInt(numDocs);
+		}
+		int nextI = random.nextInt(numOutLinks[currentDoc]);
+		Enumeration<Integer> outLinks = links.get(currentDoc).keys();
+		for(int i = 0; outLinks.hasMoreElements(); i++) {
+			Integer outLink = outLinks.nextElement();
+			if (i == nextI) {
+				return outLink.intValue();
+			}
+		}
+		System.err.println("Error: mcMove failed to generate a move.");
+		System.exit(1);
+		return -1; //error
+	}
+
+	
 	
 	/* --------------------------------------------- */
 
@@ -160,10 +231,12 @@ public class PageRank {
 	public PageRank( String filename ) {
 		readDocs( filename );
 		computePagerank(false);
+		mcCompletePath(10);
 	}
 
 
 	/* --------------------------------------------- */
+
 
 
 	/**
