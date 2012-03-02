@@ -19,10 +19,6 @@ public class HashedIndex implements Index {
 	/** The index as a hashtable. */
 	private HashMap<String,PostingsList> index = new HashMap<String,PostingsList>();
 
-	public static double logw(double tf) {
-		return (tf <= 0) ? 0 : 1 + Math.log10(tf);
-	}
-
 	/**
 	 *  Inserts this token in the index.
 	 */
@@ -66,7 +62,6 @@ public class HashedIndex implements Index {
 		}
 		// Ranked queries
 		else {
-			System.out.println("===================================================");
 			int numDocuments = docIDs.size();
 
 			// Term frequency in query
@@ -76,32 +71,33 @@ public class HashedIndex implements Index {
 				termCounts.put(term, (count == null) ? 1 : count + 1);
 			}
 
-			int termsLength = searchTerms.size();
-			int numTerms = termCounts.size();
-			String[] terms = termCounts.keySet().toArray(new String[0]); // unique terms
+			int numSearchTerms = searchTerms.size(); // total number of terms in search
+			int numTerms = termCounts.size(); // number of distinct terms
+			String[] terms = termCounts.keySet().toArray(new String[0]); // distinct terms
 			double[] queryTFIDF = new double[numTerms];
 
 			// Query for each term separately
 			PostingsList[] termResults = new PostingsList[numTerms];
+
+			// DocID -> array index mapping
 			HashMap<Integer,Integer> resultDocIds = new HashMap<Integer,Integer>();
 			int currentDocIdx = 0;
 
-			// Query for each distinct term and create docID -> index mapping
-			// Also compute IDF for each term
-			int idx = 0;
+			// Query for each distinct term, compute TFIDF and create docID -> index mapping
+			int idx = 0; // term index
 			for (String term : terms) {
 				termResults[idx] = getPostings(term);
 
-				// Calculate query TFIDF
+				// Calculate term TFIDF
 				int tf = termCounts.get(terms[idx]);
 				int df = termResults[idx].size();
 				double idf = (df < 1) ? 0 : Math.log10((double) numDocuments / df) + 1;
 				queryTFIDF[idx] = tf * idf;
 
+				// Determine index mapping for each document found
 				for (PostingsEntry entry : termResults[idx].list) {
-					// Determine index mapping for document
 					Integer entryIndex = resultDocIds.get(entry.docID);
-					if (entryIndex == null) // assign next available index
+					if (entryIndex == null) // assign next available index if not seen yet
 						resultDocIds.put(entry.docID, currentDocIdx++);
 				}
 
@@ -124,7 +120,7 @@ public class HashedIndex implements Index {
 					// Compute document score in regard to this term
 					int dTF = entry.getFrequency();
 					int dLength = docLengths.get("" + entry.docID);
-					scores[entryIndex] += queryTFIDF[idx] * dTF / Math.sqrt(termsLength) / Math.sqrt(dLength);
+					scores[entryIndex] += queryTFIDF[idx] * dTF / Math.sqrt(numSearchTerms) / Math.sqrt(dLength);
 				}
 
 				// Merge (union) each PostingsList
@@ -139,7 +135,7 @@ public class HashedIndex implements Index {
 
 			// Sort documents according to their similarity score.
 			Collections.sort(result.list);
-		}
+		} // ranked queries
 
 		return (result == null) ? new PostingsList() : result;
 	}
