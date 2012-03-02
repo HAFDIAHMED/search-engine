@@ -6,8 +6,15 @@
  *   This version: Victor Hallberg, Johan Stjernberg
  */  
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Random;
+import java.util.StringTokenizer;
 
 public class PageRank {
 
@@ -71,9 +78,14 @@ public class PageRank {
 	 */
 	final static int MAX_NUMBER_OF_ITERATIONS = 1000;
 	
-	
+	/**
+	 * Ranks for all documents after PageRank calculations.
+	 */
 	private double[] rank;
 	
+	/**
+	 * Whether or not the probabilities for all documents should be printed.
+	 */
 	final static boolean VERBOSE_OUTPUT = false;
 
 
@@ -170,7 +182,7 @@ public class PageRank {
 	 *	Monte Carlo Complete Path implementation
 	 *	Note: actual amount of path walks are runs * numDocs.
 	 */
-	private void mcCompletePath(int runs) {
+	private void mcCompletePathCyclicStart(int runs) {
 		int[] hitCount = new int[numDocs];
 		for (int i = 0; i < runs; i++) {
 			for (int j = 0; j < numDocs; j++) {
@@ -183,7 +195,7 @@ public class PageRank {
 				}
 			}
 		}
-		mcPrintResult(hitCount, runs * numDocs * numDocs, "Complete Path");
+		mcPrintResult(hitCount, runs * numDocs * numDocs, "Complete Path (Cyclic Start)");
 	}
 
 	/**
@@ -337,7 +349,7 @@ public class PageRank {
 		computePagerank(false);
 		mcEndPointRandomStart(10 * numDocs);
 		mcEndPointCyclicStart(10);
-		mcCompletePath(10);
+		mcCompletePathCyclicStart(10);
 		mcCompletePathDanglingNodes(10);
 		mcCompletePathRandomStart(10 * numDocs);
 	}
