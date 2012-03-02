@@ -30,8 +30,6 @@ public class HashedIndex implements Index {
 			index.put(token, list);
 		}
 
-		//System.out.println("inserting " + token + ": " + docID + ":" + offset);
-
 		list.add(docID, offset);
 	}
 
@@ -130,8 +128,12 @@ public class HashedIndex implements Index {
 			}
 
 			// Assign score to corresponding document (postings) entries
-			for (PostingsEntry pe : result.list)
+			for (PostingsEntry pe : result.list) {
 				pe.score = scores[resultDocIds.get(pe.docID)];
+				Double rank = (pageRank != null) ? pageRank.get(docIDs.get("" + pe.docID)) : null;
+				if (rank != null)
+					pe.score *= rank * 10;
+			}
 
 			// Sort documents according to their similarity score.
 			Collections.sort(result.list);

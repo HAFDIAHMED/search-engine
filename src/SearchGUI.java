@@ -48,6 +48,9 @@ public class SearchGUI extends JFrame {
 	/**  Directory from which the code is compiled and run. */
 	public static final String homeDir = ".";
 
+	/** File containing link graph for PageRank */
+	public String linksFile;
+
 	/*  
 	 *   Common GUI resources
 	 */
@@ -139,7 +142,7 @@ public class SearchGUI extends JFrame {
 							String filename = indexer.index.docIDs.get("" + pe.docID);
 							buf.append(String.format(
 								"%6s  %s  ",
-								i+1,
+								i + 1,
 								(filename == null ? pe.docID : filename)
 							));
 							if (queryType == Index.RANKED_QUERY)
@@ -247,15 +250,18 @@ public class SearchGUI extends JFrame {
 					System.err.println("Too many index files specified");
 					break;
 				}
-				if (i < args.length) {
+				if (i < args.length)
 					indexFiles.add(args[i++]);
-				}
 			} 
+			else if ("-l".equals(args[i])) {
+				i++;
+				if (i < args.length)
+					lindexer.index.pageRank = new PageRank(args[i++]);
+			}
 			else if ("-d".equals(args[i])) {
 				i++;
-				if (i < args.length) {
+				if (i < args.length)
 					dirNames.add(args[i++]);
-				}
 			}
 			else if ("-m".equals(args[i])) {
 				i++;
