@@ -6,12 +6,16 @@ Running
 -------
 Using hashed index:
 
-	$ java -cp bin;megamap;pdfbox SearchGUI -d texts/1000
+	$ java -cp bin SearchGUI -d texts/1000
+
+Include PageRank in ranked search:
+
+	$ java -cp bin SearchGUI -d texts/1000 -r texts/links/1000.txt
 
 Using MegaMap (disk based index):
 
-	$ java -cp bin:megamap:pdfbox SearchGUI -d texts/1000 -m
-	$ java -cp bin:megamap:pdfbox SearchGUI -i index_name -m
+	$ java -cp bin:megamap SearchGUI -d texts/1000 -m
+	$ java -cp bin:megamap SearchGUI -i index_name -m
 
 Authors
 -------
