@@ -79,7 +79,7 @@ public class HashedIndex implements Index {
 			int termsLength = searchTerms.size();
 			int numTerms = termCounts.size();
 			String[] terms = termCounts.keySet().toArray(new String[0]); // unique terms
-			double[] idf = new double[numTerms];
+			double[] queryTFIDF = new double[numTerms];
 
 			// Query for each term separately
 			PostingsList[] termResults = new PostingsList[numTerms];
@@ -87,85 +87,55 @@ public class HashedIndex implements Index {
 			int currentDocIdx = 0;
 
 			// Query for each distinct term and create docID -> index mapping
-			int termIndex = 0;
+			// Also compute IDF for each term
+			int idx = 0;
 			for (String term : terms) {
-				termResults[termIndex] = getPostings(term);
+				termResults[idx] = getPostings(term);
 
-				int df = termResults[termIndex].size();
-				// TODO: tweak constant
-				idf[termIndex] = (df < 1) ? 0 : Math.log10((double) numDocuments / df) + 1;
+				// Calculate query TFIDF
+				int tf = termCounts.get(terms[idx]);
+				int df = termResults[idx].size();
+				double idf = (df < 1) ? 0 : Math.log10((double) numDocuments / df) + 1;
+				queryTFIDF[idx] = tf * idf;
 
-				for (PostingsEntry entry : termResults[termIndex].list) {
+				for (PostingsEntry entry : termResults[idx].list) {
 					// Determine index mapping for document
-					Integer idx = resultDocIds.get(entry.docID);
-					if (idx == null) // assign next available index
+					Integer entryIndex = resultDocIds.get(entry.docID);
+					if (entryIndex == null) // assign next available index
 						resultDocIds.put(entry.docID, currentDocIdx++);
 				}
 
-				++termIndex;
+				++idx;
 			}
 
 			int numResultDocIDs = resultDocIds.size();
 
 			double[] scores = new double[numResultDocIDs];
 
-			// TFIDF vectors
-			double[] qv = new double[numTerms];
-			double[][] dv = new double[numResultDocIDs][numTerms];
-
-			// Calculate TFIDF for query searchTerms
-			termIndex = 0;
-			for (String term : terms) {
-				// TODO: fix
-				//qv[termIndex] = logw(termCounts.get(term));
-				qv[termIndex] = (double) termCounts.get(term) * idf[termIndex];
-				//System.out.println("qv(" + term + ") tfidf=" + qv[termIndex] + " freq=" + termCounts.get(term) + " len="+termsLength);
-				++termIndex;
-			}
-
-			// Calculate TFIDF values for each document (in regards to each search term)
-			termIndex = 0;
+			// Calculate scores for each document (in regards to each search term)
+			idx = 0;
 			for (PostingsList termResult : termResults) {
 				for (PostingsEntry entry : termResult.list) {
 					// Determine index mapping for document
-					Integer idx = resultDocIds.get(entry.docID);
-					if (idx == null) // assign next available index
+					Integer entryIndex = resultDocIds.get(entry.docID);
+					if (entryIndex == null) // assign next available index
 						resultDocIds.put(entry.docID, currentDocIdx++);
 
-					int queryTf = termCounts.get(terms[termIndex]);
-					int docTf = entry.getFrequency();
-					int docLength = docLengths.get("" + entry.docID);
-
-					double q = logw((double) queryTf) * idf[termIndex];
-					double d = logw((double) docTf) * idf[termIndex];
-					scores[idx] += q * d / (1 + Math.log10(docLength));
-
-					// TF_a * IDF
-					dv[idx][termIndex] = (double) entry.getFrequency() * idf[termIndex];
-					//System.out.println("dv(" + idx + ":" + searchTerms.get(termIndex) + ") tfidf=" + dv[idx][termIndex] + " freq=" + entry.getFrequency() + " len="+docLengths.get("" + entry.docID));
+					// Compute document score in regard to this term
+					int dTF = entry.getFrequency();
+					int dLength = docLengths.get("" + entry.docID);
+					scores[entryIndex] += queryTFIDF[idx] * dTF / Math.sqrt(termsLength) / Math.sqrt(dLength);
 				}
 
 				// Merge (union) each PostingsList
 				result = (result == null) ? termResult : result.unionWith(termResult);
 
-				++termIndex;
+				++idx;
 			}
 
-			// Calculate cos similarity of each document
-			for (PostingsEntry pe : result.list) {
-				/*
-				double nom = .0, denom1 = .0, denom2 = .0;
-				for (int i = 0; i < numTerms; ++i) {
-					double di = dv[resultDocIds.get(pe.docID)][i];
-					nom += qv[i] * di;
-					denom1 += qv[i] * qv[i];
-					denom2 += di * di;
-				}
-				pe.score = nom / ( Math.sqrt(denom1) * Math.sqrt(denom2) );
-				*/
-				//System.out.println("docId=" + pe.docID + " score=" + pe.score + " nom="+nom + " denom1="+denom1 + " denom2="+denom2);
+			// Assign score to corresponding document (postings) entries
+			for (PostingsEntry pe : result.list)
 				pe.score = scores[resultDocIds.get(pe.docID)];
-			}
 
 			// Sort documents according to their similarity score.
 			Collections.sort(result.list);
