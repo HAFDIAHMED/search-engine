@@ -108,6 +108,7 @@ public class SearchGUI extends JFrame {
 		// Display area for search results
 		resultWindow.setFont(resultFont);
 		resultWindow.setEditable(false);
+		resultWindow.setMargin(insets);
 		p.add(resultPane, BorderLayout.CENTER);
 
 		// Show the interface
@@ -132,7 +133,7 @@ public class SearchGUI extends JFrame {
 					StringBuffer buf = new StringBuffer();
 					buf.append(searchstring + ": ");
 					if (p != null) {
-						buf.append(p.size() + " matching document(s)\n\n");
+						buf.append(p.size() + " matching documents\n\n");
 						for (int i=0; i<p.size(); i++) {
 							PostingsEntry pe = p.get(i);
 							String filename = indexer.index.docIDs.get("" + pe.docID);
@@ -149,7 +150,7 @@ public class SearchGUI extends JFrame {
 						}
 					}
 					else {
-						buf.append("0 matching document(s)\n");
+						buf.append("0 matching documents\n");
 					}
 					resultWindow.setText(buf.toString());
 					resultWindow.setCaretPosition(0);
