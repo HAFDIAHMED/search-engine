@@ -1,11 +1,9 @@
-/*  
+/**
  *   This file is part of the computer assignment for the
  *   Information Retrieval course at KTH.
- * 
+ *
  *   First version: Johan Boye, 2012
- */  
-
-
+ */
 
 import java.io.File;
 import java.io.IOException;
@@ -17,7 +15,6 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.event.*;
-
 
 /**
  *   A graphical interface to the information retrieval system.
@@ -45,13 +42,10 @@ public class SearchGUI extends JFrame {
 	/**  Lock to prevent simultaneous access to the index. */
 	Object indexLock = new Object();
 
-	/**  Directory from which the code is compiled and run. */
-	public static final String homeDir = ".";
-
 	/** File containing link graph for PageRank */
 	public String linksFile;
 
-	/*  
+	/*
 	 *   Common GUI resources
 	 */
 	public JTextField queryWindow = new JTextField("", 28);
@@ -252,8 +246,8 @@ public class SearchGUI extends JFrame {
 				}
 				if (i < args.length)
 					indexFiles.add(args[i++]);
-			} 
-			else if ("-l".equals(args[i])) {
+			}
+			else if ("-r".equals(args[i])) {
 				i++;
 				if (i < args.length)
 					lindexer.index.pageRank = new PageRank(args[i++]);
@@ -285,7 +279,7 @@ public class SearchGUI extends JFrame {
 				resultWindow.setText("\n  Done!");
 			}
 		}
-	}									
+	}
 
 
 	/* ----------------------------------------------- */
