@@ -11,6 +11,7 @@
 import java.util.LinkedList;
 import java.util.HashMap;
 import java.util.Collections;
+import java.util.regex.*;
 
 /**
  *   Implements an inverted index as a Hashtable from words to PostingsLists.
@@ -18,6 +19,10 @@ import java.util.Collections;
 public class HashedIndex implements Index {
 	/** The index as a hashtable. */
 	private HashMap<String,PostingsList> index = new HashMap<String,PostingsList>();
+
+	private PageRank pageRank;
+
+	private Pattern docNamePattern = Pattern.compile("([^\\\\/]+?)(?:\\..+)?$");
 
 	/**
 	 *  Inserts this token in the index.
@@ -130,9 +135,9 @@ public class HashedIndex implements Index {
 			// Assign score to corresponding document (postings) entries
 			for (PostingsEntry pe : result.list) {
 				pe.score = scores[resultDocIds.get(pe.docID)];
-				Double rank = (pageRank != null) ? pageRank.get(docIDs.get("" + pe.docID)) : null;
+				Double rank = (pageRank == null) ? null : pageRank.get(pageRankName(pe.docID));
 				if (rank != null)
-					pe.score *= rank * 10;
+					pe.score *= Math.sqrt(rank * numDocuments);
 			}
 
 			// Sort documents according to their similarity score.
@@ -142,10 +147,22 @@ public class HashedIndex implements Index {
 		return (result == null) ? new PostingsList() : result;
 	}
 
+	private String pageRankName(int id) {
+		String name = docIDs.get("" + id);
+		Matcher m = docNamePattern.matcher(name);
+		if (!m.find())
+			return name;
+		return m.group(1);
+	}
+
 
 	/**
 	 *  No need for cleanup in a HashedIndex.
 	 */
 	public void cleanup() {
+	}
+
+	public void setPageRank(PageRank p) {
+		this.pageRank = p;
 	}
 }

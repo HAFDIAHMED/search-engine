@@ -219,12 +219,12 @@ public class SearchGUI extends JFrame {
 	 */
 	private void index() {
 		synchronized (indexLock) {
-			resultWindow.setText("\n  Indexing, please wait...");
+			resultWindow.setText("Indexing, please wait...");
 			for (int i=0; i<dirNames.size(); i++) {
 				File dokDir = new File(dirNames.get(i));
 				indexer.processFiles(dokDir);
 			}
-			resultWindow.setText("\n  Done!");
+			resultWindow.setText("Done!");
 		}
 	};
 
@@ -236,7 +236,9 @@ public class SearchGUI extends JFrame {
 	 *   Decodes the command line arguments.
 	 */
 	private void decodeArgs(String[] args) {
+		String linksFile = null;
 		int i=0, j=0;
+
 		while (i < args.length) {
 			if ("-i".equals(args[i])) {
 				i++;
@@ -248,13 +250,11 @@ public class SearchGUI extends JFrame {
 					indexFiles.add(args[i++]);
 			}
 			else if ("-r".equals(args[i])) {
-				i++;
-				if (i < args.length)
-					indexer.index.pageRank = new PageRank(args[i++]);
+				if (++i < args.length)
+					linksFile = args[i++];
 			}
 			else if ("-d".equals(args[i])) {
-				i++;
-				if (i < args.length)
+				if (++i < args.length)
 					dirNames.add(args[i++]);
 			}
 			else if ("-m".equals(args[i])) {
@@ -274,9 +274,14 @@ public class SearchGUI extends JFrame {
 				indexer = new Indexer();
 			}
 			else {
-				resultWindow.setText("\n  Creating MegaIndex, please wait... ");
+				resultWindow.setText("Creating MegaIndex, please wait...");
 				indexer = new Indexer(indexFiles);
-				resultWindow.setText("\n  Done!");
+				resultWindow.setText("Done!");
+			}
+			if (linksFile != null) {
+				resultWindow.setText("Generating PageRank...");
+				indexer.index.setPageRank(new PageRank(linksFile, PageRank.ALGORITHM.PAGE_RANK));
+				resultWindow.setText("Done!");
 			}
 		}
 	}

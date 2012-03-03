@@ -25,7 +25,7 @@ public interface Index {
 	public HashMap<String, String> docIDs = new HashMap<String,String>();
 	public HashMap<String,Integer> docLengths = new HashMap<String,Integer>();
 
-	public PageRank pageRank = null;
+	public void setPageRank(PageRank p);
 
 	public void insert( String token, int docID, int offset );
 	public PostingsList getPostings( String token );
