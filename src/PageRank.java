@@ -187,7 +187,10 @@ public class PageRank {
 			rank = next;
 		} // iterations
 
-		normalizeRank();
+		double sum = 0;
+		for (int p = 0; p < numDocs; ++p)
+			sum += rank[p];
+		normalizeRank(sum);
 
 		// Print page ranks of all documents
 		/*
@@ -207,12 +210,9 @@ public class PageRank {
 	/**
 	 *  Normalizes rank to a uniform distribution (sums up to 1.0)
 	 */
-	private void normalizeRank() {
-		double sum = 0;
-		for (int p = 0; p < numDocs; ++p)
-			sum += rank[p];
+	private void normalizeRank(double denom) {
 		for (int i = 0; i < numDocs; ++i)
-			rank[i] /= sum;
+			rank[i] /= denom;
 	}
 
 	/**
@@ -234,7 +234,7 @@ public class PageRank {
 				}
 			}
 		}
-		normalizeRank();
+		normalizeRank(runs * numDocs * numDocs);
 	}
 
 	/**
@@ -253,7 +253,7 @@ public class PageRank {
 				rank[curr]++;
 			}
 		}
-		normalizeRank();
+		normalizeRank(n);
 	}
 
 	/**
@@ -280,7 +280,7 @@ public class PageRank {
 				}
 			}
 		}
-		normalizeRank();
+		normalizeRank(n);
 	}
 	
 	/**
@@ -301,7 +301,7 @@ public class PageRank {
 				rank[curr]++;
 			}
 		}
-		normalizeRank();
+		normalizeRank(runs * numDocs);
 	}
 	
 	/**
@@ -319,7 +319,7 @@ public class PageRank {
 			}
 			rank[curr]++;
 		}
-		normalizeRank();
+		normalizeRank(runs);
 	}
 
 	/**
