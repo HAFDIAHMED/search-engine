@@ -250,7 +250,7 @@ public class SearchGUI extends JFrame {
 			else if ("-r".equals(args[i])) {
 				i++;
 				if (i < args.length)
-					lindexer.index.pageRank = new PageRank(args[i++]);
+					indexer.index.pageRank = new PageRank(args[i++]);
 			}
 			else if ("-d".equals(args[i])) {
 				i++;

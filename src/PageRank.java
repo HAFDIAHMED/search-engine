@@ -84,10 +84,43 @@ public class PageRank {
 	private double[] rank;
 	
 	/**
-	 * Whether or not the probabilities for all documents should be printed.
+	 * VERBOSE = The probabilities for all documents are printed.
+	 * NORMAL = The final results from all computations are printed.
+	 * NONE = No ouput is printed.
 	 */
-	final static boolean VERBOSE_OUTPUT = false;
+	public enum OUTPUT { VERBOSE, NORMAL, NONE };
+	
+	/**
+	 * Current choice of output type. Default is none.
+	 */
+	private OUTPUT outputType = OUTPUT.NONE;
+	
+	public enum ALGORITHM { 
+		/** Run all algorithms and print comparison. */
+		ALL, 
+		
+		/** Page rank. */
+		PAGE_RANK, 
+		
+		/** Monte Carlo End-Point Random start */
+		MC_END_RANDOM, 
+		
+		/** Monte Carlo End-Point Cyclic start */
+		MC_END_CYCLIC, 
+		
+		/** Monte Carlo Complete Path Cyclic start */
+		MC_COMPLETE_CYCLIC, 
+		
+		/** Monte Carlo Complete Path Dangling start */
+		MC_COMPLETE_DANGLING, 
+		
+		/** Monte Carlo Complete path Random start */
+		MC_COMPLETE_RANDOM
+	};
 
+	/** If true, comparison will be made between page rank run and MC run.
+	 * If false, rank will be saved by the algorithm passed to the constructor. */
+	private boolean RUN_ALL = false;
 
 	/* --------------------------------------------- */
 
@@ -95,7 +128,7 @@ public class PageRank {
 	 *   Computes the pagerank of each document.
 	 */
 	void computePagerank(boolean approximate) {
-		System.out.println("Computing PageRank starting");
+		print(OUTPUT.NORMAL, "Computing PageRank starting");
 
 		// Rank array (x)
 		rank = new double[numDocs];
@@ -111,21 +144,22 @@ public class PageRank {
 
 		while (iter++ < MAX_NUMBER_OF_ITERATIONS || !approximate) {
 			// Print page ranks of all documents
-			/*
-			System.out.println("Before iteration " + iter + ":");
-			for (int i = 0; i < numDocs; ++i)
-				System.out.println(docNames[i] +
-				                   "\t rank: " + String.format("%.5f", rank[i]) +
-				                   "\t " + numOutLinks[i] + " outgoing");
-			System.out.println("=================================================");
-			*/
+			
+			if (outputType == OUTPUT.VERBOSE) {
+				System.out.println("Before iteration " + iter + ":");
+				for (int i = 0; i < numDocs; ++i)
+					System.out.println(docNames[i] +
+					                   "\t rank: " + String.format("%.5f", rank[i]) +
+					                   "\t " + numOutLinks[i] + " outgoing");
+				System.out.println("=================================================");
+			}
 
 			// Reached stable state? (|x-x'| < epsilon)
 			double res = 0.0;
 			for (int i = 0; i < numDocs; ++i)
 				res += Math.pow(rank[i] - prev[i], 2);
 			if (Math.sqrt(res) <= EPSILON) {
-				System.out.println("Reached stable state after " + iter + " iterations.");
+				print(OUTPUT.NORMAL, "Reached stable state after " + iter + " iterations.");
 				break;
 			}
 
@@ -169,12 +203,11 @@ public class PageRank {
 		double total = 0.0;
 		for (int i = 0; i < numDocs; ++i) {
 			total += rank[i];
-			if (VERBOSE_OUTPUT) 
-				System.out.println(docNames[i] +
+			print(OUTPUT.VERBOSE, docNames[i] +
 					"\t rank: " + String.format("%.5f", rank[i]) +
 					"\t " + numOutLinks[i] + " outgoing");			
 		}
-		System.out.println("Sum of all probabilities: " + total);
+		print(OUTPUT.NORMAL, "Sum of all probabilities: " + total);
 	}
 
 	
@@ -195,7 +228,7 @@ public class PageRank {
 				}
 			}
 		}
-		mcPrintResult(hitCount, runs * numDocs * numDocs, "Complete Path (Cyclic Start)");
+		mcPrintAndSaveResult(hitCount, runs * numDocs * numDocs, "Complete Path (Cyclic Start)");
 	}
 
 	/**
@@ -213,7 +246,7 @@ public class PageRank {
 				hitCount[curr]++;
 			}
 		}
-		mcPrintResult(hitCount, runs * numDocs, "Complete Path Random Start");
+		mcPrintAndSaveResult(hitCount, runs * numDocs, "Complete Path Random Start");
 	}
 
 	/**
@@ -239,7 +272,7 @@ public class PageRank {
 				}
 			}
 		}
-		mcPrintResult(hitCount, n, "Complete Path Dangling Nodes");
+		mcPrintAndSaveResult(hitCount, n, "Complete Path Dangling Nodes");
 	}
 	
 	/**
@@ -258,7 +291,7 @@ public class PageRank {
 				hitCount[curr]++;
 			}
 		}
-		mcPrintResult(hitCount, runs * numDocs, "End-Point Cyclic Start");
+		mcPrintAndSaveResult(hitCount, runs * numDocs, "End-Point Cyclic Start");
 	}
 	
 	/**
@@ -275,37 +308,47 @@ public class PageRank {
 			}
 			hitCount[curr]++;
 		}
-		mcPrintResult(hitCount, runs, "End-Point Random Start");
+		mcPrintAndSaveResult(hitCount, runs, "End-Point Random Start");
 	}
-	
+
+
 	/**
-	 * Print the results of a Monte Carlo algorithm.
+	 * Print the results of a Monte Carlo algorithm and/or saves it to this 
+	 * PageRank object if not running all algorithms.
 	 * 
 	 * @param hitCount The amounts of hits for each document.
 	 * @param totalHits The total amount of hits for all documents.
 	 * @param name The name of this variant of the Monte Carlo algorithm.
 	 */
-	private void mcPrintResult(int[] hitCount, int totalHits, String name) {
-		System.out.println("=================================================");
-		System.out.println("Monte Carlo " + name + " result");
-		System.out.println("=================================================");
+	private void mcPrintAndSaveResult(int[] hitCount, int totalHits, String name) {
+		if (!RUN_ALL) {
+			rank = new double[numDocs];
+		}
+		
+		print(OUTPUT.NORMAL, "=================================================");
+		print(OUTPUT.NORMAL, "Monte Carlo " + name + " result");
+		print(OUTPUT.NORMAL, "=================================================");
 		double total = 0.0;
-		double diffTotal = 0.0;
+		double diff = 0.0, diffTotal = 0.0;
 		double[] result = new double[numDocs];
 		for (int i = 0; i < numDocs; i++) {
 			result[i] = (double) hitCount[i] / totalHits;
-			double diff = Math.abs(rank[i]-result[i]);
 			total += result[i];
-			diffTotal += diff;
-			if (VERBOSE_OUTPUT)
-				System.out.println(docNames[i] +
-					"\t rank: " + String.format("%.5f", result[i]) +
-					"\t diff: " + String.format("%.5f", diff) +
-					"\t " + numOutLinks[i] + " outgoing");
+			if (RUN_ALL) { // Calculate diff
+				diff = Math.abs(rank[i]-result[i]);
+				diffTotal += diff;
+			} else { // Save result
+				rank[i] = result[i];
+			}
+			print(OUTPUT.VERBOSE, docNames[i] +
+				"\t rank: " + String.format("%.5f", result[i]) +
+				"\t diff: " + (RUN_ALL ? String.format("%.5f", diff) : "[unknown]") +
+				"\t " + numOutLinks[i] + " outgoing");
 		}
-		System.out.println("Sum of all probabilities: " + total);
-		System.out.println("Total diff from Page Rank: " + diffTotal);
-		System.out.println("=================================================");
+		print(OUTPUT.NORMAL, "Sum of all probabilities: " + total);
+		if (RUN_ALL)
+			print(OUTPUT.NORMAL, "Total diff from Page Rank: " + diffTotal);
+		print(OUTPUT.NORMAL, "=================================================");
 	}
 	
 	
@@ -340,12 +383,64 @@ public class PageRank {
 	}
 
 	
+	private void print(OUTPUT type, String text) {
+		if (outputType == type || outputType == OUTPUT.VERBOSE) {
+			System.out.println(text);
+		}
+	}
+	
 	
 	/* --------------------------------------------- */
 
 
+	/**
+	 * Default constructor. Read the file and compute page rank.
+	 * 
+	 * @param filename Location of file to read.
+	 */
 	public PageRank(String filename) {
+		this(filename, ALGORITHM.PAGE_RANK);
+	}
+	
+	/**
+	 * Constructor. Read the file and compute page rank.
+	 * 
+	 * @param filename Location of file to read.
+	 * @param alg The algorithm to use when calculating page rank or
+	 * 			ALGORITHM.ALL if a comparison between all algorithms
+	 * 			should be made.
+	 */
+	public PageRank(String filename, ALGORITHM alg) {
+		outputType = OUTPUT.NONE; // default is no output
 		readDocs(filename);
+		switch (alg) {
+			case ALL:
+				runAll();
+				break;
+			case MC_COMPLETE_CYCLIC:
+				mcCompletePathCyclicStart(10);
+				break;
+			case MC_COMPLETE_DANGLING:
+				mcCompletePathDanglingNodes(10);
+				break;
+			case MC_COMPLETE_RANDOM:
+				mcCompletePathRandomStart(10 * numDocs);
+				break;
+			case MC_END_CYCLIC:
+				mcEndPointCyclicStart(10);
+				break;
+			case MC_END_RANDOM:
+				mcEndPointRandomStart(10 * numDocs);
+				break;
+			default:
+				computePagerank(false);
+				break;
+		}
+	}
+	
+	public void runAll() {
+		outputType = OUTPUT.NORMAL;
+		RUN_ALL = true;
 		computePagerank(false);
 		mcEndPointRandomStart(10 * numDocs);
 		mcEndPointCyclicStart(10);
@@ -354,6 +449,19 @@ public class PageRank {
 		mcCompletePathRandomStart(10 * numDocs);
 	}
 
+	/**
+	 * Fetch page rank for specific document.
+	 * 
+	 * @param document The name of the document.
+	 * @return The page rank, or null if document was not found.
+	 */
+	public Double get(String document) {
+		Integer docID = docNumbers.get(document);
+		if (docID == null) {
+			return null;
+		}
+		return new Double(rank[docID]);
+	}
 
 	/* --------------------------------------------- */
 
@@ -369,7 +477,7 @@ public class PageRank {
 	void readDocs(String filename) {
 		numDocs = 0;
 		try {
-			System.err.print("Reading file... ");
+			print(OUTPUT.NORMAL, "Reading file... ");
 			BufferedReader in = new BufferedReader(new FileReader(filename));
 			String line;
 
@@ -415,8 +523,8 @@ public class PageRank {
 			}
 			if (numDocs >= MAX_NUMBER_OF_DOCS)
 				System.err.print("stopped reading since documents table is full. ");
-			else
-				System.err.print("done. ");
+			else 
+				print(OUTPUT.NORMAL, "Done.");
 
 			// Compute the number of sinks.
 			for (int i=0; i<numDocs; i++) {
@@ -430,14 +538,14 @@ public class PageRank {
 		catch (IOException e) {
 			System.err.println("Error reading file " + filename);
 		}
-		System.err.println("Read " + numDocs + " number of documents");
+		print(OUTPUT.NORMAL, "Read " + numDocs + " number of documents");
 	}
 
 
 	public static void main(String[] args) {
 		if (args.length != 1)
 			System.err.println("Please give the name of the links file");
-		else
-			new PageRank(args[0]);
+		else 
+			new PageRank(args[0], ALGORITHM.ALL);
 	}
 }
