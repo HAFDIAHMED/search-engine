@@ -253,7 +253,7 @@ public class PageRank {
 				rank[curr]++;
 			}
 		}
-		normalizeRank(n);
+		normalizeRank(runs);
 	}
 
 	/**
