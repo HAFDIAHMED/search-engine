@@ -280,7 +280,7 @@ public class SearchGUI extends JFrame {
 			}
 			if (linksFile != null) {
 				resultWindow.setText("Generating PageRank...");
-				indexer.index.setPageRank(new PageRank(linksFile, PageRank.ALGORITHM.PAGE_RANK));
+				indexer.index.setPageRank(new PageRank(linksFile, PageRank.ALGORITHM.MC_COMPLETE_CYCLIC));
 				resultWindow.setText("Done!");
 			}
 		}

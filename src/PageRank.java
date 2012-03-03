@@ -128,7 +128,6 @@ public class PageRank {
 	 */
 	public Double get(String document) {
 		Integer docID = docNumbers.get(document);
-		System.out.println("PageRank.get("+document + ") -> " + docID);
 		return (docID == null) ? null : new Double(rank[docID]);
 	}
 
