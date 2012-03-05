@@ -24,6 +24,8 @@ public class PageRank {
 	 */
 	final static int MAX_NUMBER_OF_DOCS = 2000000;
 
+	final static int MC_ITERATIONS = 2;
+
 	/** Number of documents */
 	public int numDocs = 0;
 	
@@ -375,19 +377,19 @@ public class PageRank {
 		readDocs(filename);
 		switch (alg) {
 			case MC_COMPLETE_CYCLIC:
-				mcCompletePathCyclicStart(10);
+				mcCompletePathCyclicStart(MC_ITERATIONS);
 				break;
 			case MC_COMPLETE_DANGLING:
-				mcCompletePathDanglingNodes(10);
+				mcCompletePathDanglingNodes(MC_ITERATIONS);
 				break;
 			case MC_COMPLETE_RANDOM:
-				mcCompletePathRandomStart(10 * numDocs);
+				mcCompletePathRandomStart(MC_ITERATIONS * numDocs);
 				break;
 			case MC_END_CYCLIC:
-				mcEndPointCyclicStart(10);
+				mcEndPointCyclicStart(MC_ITERATIONS);
 				break;
 			case MC_END_RANDOM:
-				mcEndPointRandomStart(10 * numDocs);
+				mcEndPointRandomStart(MC_ITERATIONS * numDocs);
 				break;
 			default:
 				computeRank(false);
