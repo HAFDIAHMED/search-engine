@@ -95,7 +95,7 @@ public class HashedIndex implements Index {
 				int tf = termCounts.get(terms[idx]);
 				int df = termResults[idx].size();
 				double idf = (df < 1) ? 0 : Math.log10((double) numDocuments / df) + 1;
-				queryTFIDF[idx] = tf * idf;
+				queryTFIDF[idx] = tf * idf * idf;
 
 				// Determine index mapping for each document found
 				for (PostingsEntry entry : termResults[idx].list) {
