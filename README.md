@@ -21,5 +21,5 @@ Using MegaMap (disk based index):
 
 Authors
 -------
-Victor Hallberg <<victorha@kth.se>>
+Victor Hallberg <<victorha@kth.se>><br>
 Johan Stjernberg <<stjer@kth.se>>
