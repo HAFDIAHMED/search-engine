@@ -2,6 +2,8 @@ Search engine in Java
 =====================
 Developed for Information Retrieval course (ir12) at KTH.
 
+Based on a existing skeleton by Johan Boye.
+
 Running
 -------
 Using hashed index:
